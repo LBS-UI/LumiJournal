@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#e0f2fe" />
+<title>Journal — Write it down. Check it off.</title>
+
+<style>
+/* ============================================================
+   1. THEME — SKY BLUE & WHITE
+   ============================================================ */
+:root {
+  /* Sky blues */
+  --sky-900: #0c4a6e;
+  --sky-800: #075985;
+  --sky-700: #0369a1;
+  --sky-600: #0284c7;
+  --sky-500: #0ea5e9;
+  --sky-400: #38bdf8;
+  --sky-300: #7dd3fc;
+  --sky-200: #bae6fd;
+  --sky-100: #e0f2fe;
+  --sky-50:  #f0f9ff;
+
+  /* Neutrals */
+  --white:   #ffffff;
+  --cream:   #fbfdff;
+  --ink:     #0f172a;
+  --ink-2:   #334155;
+  --muted:   #64748b;
+  --line:    #e2e8f0;
+  --rule:    #dbeafe;   /* notebook line */
+
+  /* Accent (for check marks) */
+  --check:   #0284c7;
+
+  --font:  "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --hand:  "Caveat", "Segoe Script", "Bradley Hand", cursive;
+  --mono:  "JetBrains Mono", "SF Mono", "Consolas", monospace;
+
+  /* Speed knob */
+  --speed: 1;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; min-height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--sky-100);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html.intro-lock,
+html.intro-lock body { overflow: hidden; }
+
+/* ============================================================
+   2. INTRO OVERLAY — a soft desk scene
+   ============================================================ */
+.intro {
+  position: fixed; inset: 0; z-index: 9999;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      var(--sky-50) 0%,
+      var(--sky-100) 42%,
+      var(--sky-200) 100%);
+  display: grid;
+  place-items: center;
+  transition:
+    opacity .8s ease,
+    transform .9s cubic-bezier(.4, 0, .2, 1),
+    filter .8s ease;
+  will-change: opacity, transform, filter;
+}
+.intro.intro--exit {
+  opacity: 0;
+  transform: scale(1.04);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+/* ---- Soft blue glow behind the paper ---- */
+.intro__glow {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: min(900px, 115vw);
+  height: min(900px, 115vw);
+  transform: translate(-50%, -50%) scale(0.6);
+  background: radial-gradient(circle,
+    rgba(56, 189, 248, 0.30) 0%,
+    rgba(14, 165, 233, 0.16) 35%,
+    rgba(125, 211, 252, 0.06) 60%,
+    transparent 75%);
+  filter: blur(60px);
+  opacity: 0;
+  pointer-events: none;
+  animation: glow-in 3.2s ease-out .3s both;
+}
+@keyframes glow-in {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1);   }
+}
+
+/* ---- Faint dot grid ---- */
+.intro__dots {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(2, 132, 199, 0.10) 1px, transparent 1.4px);
+  background-size: 22px 22px, 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 100%);
+  opacity: 0;
+  animation: dots-in 1.6s ease-out .2s both;
+}
+@keyframes dots-in { to { opacity: 1; } }
+
+/* ---- Vignette ---- */
+.intro__vignette {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 130% 95% at 50% 50%,
+    transparent 50%,
+    rgba(12, 74, 110, 0.10) 100%);
+}
+
+/* ============================================================
+   3. THE NOTEBOOK PAGE
+   ============================================================ */
+.intro__stack {
+  position: relative;
+  z-index: 2;
+  width: min(92vw, 620px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+
+/* The page — white paper with subtle ruling lines */
+.page {
+  position: relative;
+  width: 100%;
+  padding: clamp(28px, 5vw, 42px) clamp(24px, 5vw, 44px);
+  background: linear-gradient(180deg, #ffffff 0%, var(--cream) 100%);
+  border-radius: 14px;
+  box-shadow:
+    0 30px 70px -20px rgba(12, 74, 110, 0.28),
+    0 12px 26px -10px rgba(12, 74, 110, 0.18),
+    0 0 0 1px rgba(2, 132, 199, 0.08);
+  opacity: 0;
+  transform: translateY(-24px) rotate(-1.2deg) scale(0.96);
+  animation: page-in 1.1s cubic-bezier(.22, 1.15, .36, 1) .15s both;
+  will-change: transform, opacity;
+  overflow: hidden;
+}
+@keyframes page-in {
+  0%   { opacity: 0; transform: translateY(-24px) rotate(-4deg) scale(0.94); }
+  60%  { opacity: 1; transform: translateY(4px) rotate(0.4deg) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) rotate(-0.6deg) scale(1); }
+}
+
+/* Ruling lines inside the page */
+.page::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: clamp(88px, 20vw, 118px);   /* start below the title block */
+  bottom: 26px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    var(--rule) 27px,
+    var(--rule) 28px
+  );
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Red margin line on the left */
+.page::after {
+  content: "";
+  position: absolute;
+  top: clamp(88px, 20vw, 118px);
+  bottom: 26px;
+  left: clamp(30px, 6vw, 46px);
+  width: 1.5px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(239, 68, 68, 0.35) 12%,
+    rgba(239, 68, 68, 0.35) 88%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* Corner "tape" accents */
+.page__tape {
+  position: absolute;
+  width: 78px;
+  height: 22px;
+  background: linear-gradient(180deg,
+    rgba(125, 211, 252, 0.55),
+    rgba(56, 189, 248, 0.40));
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);
+  pointer-events: none;
+  z-index: 3;
+  backdrop-filter: blur(1px);
+}
+.page__tape--tl { top: -6px; left: 22px;  transform: rotate(-8deg); }
+.page__tape--tr { top: -6px; right: 22px; transform: rotate(6deg);  }
+
+/* ============================================================
+   4. THE TITLE BLOCK
+   ============================================================ */
+.page__head {
+  position: relative;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 2px dashed var(--sky-200);
+  z-index: 2;
+}
+.page__eyebrow {
+  margin: 0 0 6px;
+  font-size: clamp(.62rem, 1.7vw, .72rem);
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--sky-600);
+}
+.page__title {
+  margin: 0;
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 5.4vw, 2.4rem);
+  line-height: 1.05;
+  color: var(--sky-900);
+  letter-spacing: 0.01em;
+}
+.page__title .accent { color: var(--sky-500); }
+
+/* Cursor for the writing effect */
+.page__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  background: var(--sky-600);
+  margin-left: 3px;
+  animation: cursor-blink 0.85s steps(2) infinite;
+}
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* ============================================================
+   5. THE CHECKLIST
+   ============================================================ */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 8px 6px 0;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: item-in .6s cubic-bezier(.22, 1.15, .36, 1) both;
+}
+@keyframes item-in {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* The checkbox */
+.item__box {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--sky-400);
+  border-radius: 6px;
+  background: #ffffff;
+  transition: border-color .3s ease, background .3s ease;
+}
+
+/* Tick-in animation fires when JS adds .is-done */
+.item.is-done .item__box {
+  background: var(--sky-500);
+  border-color: var(--sky-500);
+}
+
+/* The drawn check mark */
+.item__box::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 8px;
+  height: 13px;
+  border-right: 2.5px solid #ffffff;
+  border-bottom: 2.5px solid #ffffff;
+  transform: rotate(45deg) scale(0);
+  transform-origin: 50% 50%;
+  transition: transform .28s cubic-bezier(.22, 1.6, .4, 1);
+}
+.item.is-done .item__box::after {
+  transform: rotate(45deg) scale(1);
+}
+
+/* Soft pop ring when checking */
+.item__box::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 10px;
+  border: 2px solid rgba(14, 165, 233, 0.6);
+  opacity: 0;
+  transform: scale(0.7);
+  pointer-events: none;
+}
+.item.is-done .item__box::before {
+  animation: tick-ring .6s ease-out forwards;
+}
+@keyframes tick-ring {
+  0%   { opacity: 0.9; transform: scale(0.7); }
+  100% { opacity: 0;   transform: scale(1.7); }
+}
+
+/* The text of each item */
+.item__text {
+  position: relative;
+  font-family: var(--hand);
+  font-size: clamp(1.05rem, 3.2vw, 1.35rem);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+  transition: color .4s ease;
+}
+
+/* Strike-through animates from left to right */
+.item__text::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 52%;
+  height: 2px;
+  width: 0;
+  background: var(--sky-500);
+  border-radius: 2px;
+  transform: translateY(-50%);
+  transition: width .55s cubic-bezier(.22, 1.2, .36, 1) .1s;
+}
+.item.is-done .item__text::before {
+  width: calc(100% + 4px);
+}
+.item.is-done .item__text {
+  color: var(--muted);
+}
+
+/* Small subtle fade-in for the check sound replacement (visual only) */
+.item__spark {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--sky-400);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.6);
+  pointer-events: none;
+}
+.item.is-done .item__spark {
+  animation: spark .7s ease-out forwards;
+}
+@keyframes spark {
+  0%   { opacity: 0.9; transform: translateY(-50%) scale(0.6); }
+  60%  { opacity: 0.5; transform: translateY(-50%) translateX(4px) scale(1.4); }
+  100% { opacity: 0;   transform: translateY(-50%) translateX(10px) scale(0.6); }
+}
+
+/* ============================================================
+   6. THE "READY" STRIP + ENTER BUTTON
+   ============================================================ */
+.page__foot {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 2px dashed var(--sky-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 2;
+  position: relative;
+}
+
+.page__progress {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sky-700);
+}
+.page__bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--sky-100);
+  overflow: hidden;
+  position: relative;
+}
+.page__bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--sky-400), var(--sky-600));
+  border-radius: 999px;
+  transition: width .6s cubic-bezier(.22, 1.2, .36, 1);
+}
+
+/* ============================================================
+   7. THE LOGO MARK (small, above the page)
+   ============================================================ */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: brand-in 1s cubic-bezier(.22, 1.15, .36, 1) .4s both;
+}
+@keyframes brand-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+.brand__mark {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--sky-400) 0%, var(--sky-600) 100%);
+  box-shadow:
+    0 8px 22px rgba(2, 132, 199, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+.brand__mark svg { width: 24px; height: 24px; display: block; }
+.brand__name {
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--sky-900);
+}
+.brand__name span { color: var(--sky-500); }
+.brand__tag {
+  font-size: 0.66rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   8. ENTER BUTTON
+   ============================================================ */
+.intro__cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: clamp(.78rem, 2.1vw, .88rem);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+  box-shadow:
+    0 4px 0 rgba(7, 89, 133, 0.9),
+    0 18px 36px rgba(2, 132, 199, 0.35),
+    0 0 40px rgba(56, 189, 248, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transform: translateY(14px) scale(0.92);
+  pointer-events: auto;
+  transition:
+    transform .35s cubic-bezier(.22, 1.3, .4, 1),
+    box-shadow .35s ease,
+    filter .35s ease;
+  animation: cta-in .9s cubic-bezier(.22, 1.4, .4, 1) both;
+  animation-delay: 3.4s;
+}
+@keyframes cta-in {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.92); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.04); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.intro__cta::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 2px solid rgba(14, 165, 233, 0.55);
+  opacity: 0;
+  animation: cta-pulse 2.8s ease-out infinite;
+  animation-delay: 4.6s;
+  pointer-events: none;
+}
+@keyframes cta-pulse {
+  0%   { opacity: 0.8; transform: scale(1);    }
+  100% { opacity: 0;   transform: scale(1.4);  }
+}
+
+.intro__cta:hover,
+.intro__cta:focus-visible {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow:
+    0 6px 0 rgba(7, 89, 133, 0.9),
+    0 24px 46px rgba(2, 132, 199, 0.42),
+    0 0 60px rgba(56, 189, 248, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  filter: brightness(1.06);
+  outline: none;
+}
+.intro__cta:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    0 2px 0 rgba(7, 89, 133, 0.9),
+    0 10px 22px rgba(2, 132, 199, 0.35);
+}
+.intro__cta-arrow {
+  display: inline-block;
+  transition: transform .3s ease;
+}
+.intro__cta:hover .intro__cta-arrow,
+.intro__cta:focus-visible .intro__cta-arrow {
+  transform: translateX(4px);
+}
+
+/* Small "enter" caption under the button */
+.intro__hint {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--sky-700);
+  opacity: 0;
+  animation: hint-in .8s ease-out both;
+  animation-delay: 4s;
+}
+@keyframes hint-in { to { opacity: 0.75; } }
+
+/* ============================================================
+   9. REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .intro__glow,
+  .intro__dots,
+  .page,
+  .brand,
+  .item,
+  .intro__cta,
+  .intro__cta::after,
+  .intro__hint {
+    animation: none !important;
+  }
+  .intro__glow,
+  .intro__dots { opacity: 1; }
+  .page,
+  .brand,
+  .intro__cta,
+  .intro__hint { opacity: 1; transform: none; }
+  .item { opacity: 1; transform: none; }
+  .page__cursor { display: none; }
+}
+
+/* ============================================================
+   10. YOUR SITE (placeholder — replace with your real page)
+   ============================================================ */
+.site {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 8vh 6vw;
+  background: linear-gradient(180deg, var(--sky-100) 0%, var(--sky-50) 100%);
+  color: var(--ink);
+  text-align: center;
+}
+.site__eyebrow {
+  margin: 0 0 1rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sky-600);
+}
+.site__title {
+  margin: 0 0 1rem;
+  font-family: var(--font);
+  font-size: clamp(2.4rem, 8vw, 3.8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--sky-900);
+}
+.site__title .accent { color: var(--sky-500); }
+.site__lead {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 520px;
+}
+body.intro-playing .site {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(6px);
+}
+body.site--in .site {
+  opacity: 1; transform: none; filter: blur(0);
+  transition:
+    opacity .9s ease .05s,
+    transform .9s cubic-bezier(.22, 1, .36, 1) .05s,
+    filter .9s ease .05s;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     INTRO OVERLAY
+     ============================================================ -->
+<div class="intro" id="intro" aria-hidden="true">
+
+  <div class="intro__dots"></div>
+  <div class="intro__glow"></div>
+
+  <div class="intro__stack">
+
+    <!-- ---------- BRAND MARK ---------- -->
+    <div class="brand" id="brand">
+      <div class="brand__mark">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Notebook icon with a check -->
+          <rect x="4" y="3" width="16" height="18" rx="2.5"
+                fill="none" stroke="#ffffff" stroke-width="1.8"/>
+          <path d="M8 8 L16 8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M8 12 L14 12" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>
+          <path d="M8.5 16 L10.5 18 L15 14"
+                fill="none" stroke="#ffffff" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand__name">Lumi<span>Journal</span></div>
+        <div class="brand__tag">Write • Plan • Do</div>
+      </div>
+    </div>
+
+    <!-- ---------- THE NOTEBOOK PAGE ---------- -->
+    <div class="page" id="page">
+
+      <span class="page__tape page__tape--tl"></span>
+      <span class="page__tape page__tape--tr"></span>
+
+      <!-- Title block -->
+      <div class="page__head">
+        <p class="page__eyebrow">Today's List</p>
+        <h1 class="page__title">
+          <span id="titleText">Getting things</span><span id="titleText2">done</span><span class="page__cursor" id="titleCursor"></span>
+        </h1>
+      </div>
+
+      <!-- Checklist -->
+      <ul class="checklist" id="checklist">
+
+        <li class="item" data-index="0">
+          <span class="item__box"></span>
+          <span class="item__text">Wake up early</span>
+          <span class="item__spark"></span>
+        </li>
+
+        <li class="item" data-index="1">
+          <span class="item__box"></span>
+          <span class="item__text">Drink a glass of water</span>
+          <span class="item__spark"></span>
+        </li>
+
+        <li class="item" data-index="2">
+          <span class="item__box"></span>
+          <span class="item__text">Write down 3 priorities</span>
+          <span class="item__spark"></span>
+        </li>
+
+        <li class="item" data-index="3">
+          <span class="item__box"></span>
+          <span class="item__text">Take a slow breath</span>
+          <span class="item__spark"></span>
+        </li>
+
+        <li class="item" data-index="4">
+          <span class="item__box"></span>
+          <span class="item__text">Start something small</span>
+          <span class="item__spark"></span>
+        </li>
+
+      </ul>
+
+      <!-- Footer: progress + enter -->
+      <div class="page__foot">
+        <div class="page__progress">
+          <span id="progressLabel">0/5</span>
+          <div class="page__bar" id="progressBar"></div>
+        </div>
+        <a class="intro__cta" id="ctaButton" href="home.html" aria-label="Enter">
+          <span>Enter</span>
+          <span class="intro__cta-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+
+    </div>
+
+    <p class="intro__hint">Click enter to open your journal</p>
+
+  </div>
+
+  <div class="intro__vignette"></div>
+</div>
+
+<noscript><style>.intro{display:none!important}</style></noscript>
+
+<!-- ============================================================
+     YOUR EXISTING SITE (placeholder)
+     ============================================================ -->
+<main class="site">
+  <section>
+    <p class="site__eyebrow">Write • Plan • Do</p>
+    <h1 class="site__title">Lumi<span class="accent">Journal</span></h1>
+    <p class="site__lead">A quiet place to write what matters, plan your day, and tick off the small wins.</p>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   INTRO SCRIPT — Journal / Checklist
+   ------------------------------------------------------------
+   Timeline (all multiplied by --speed):
+     0.15s → page slides in
+     0.4s  → brand mark fades in
+     0.9s  → title starts typing
+     2.0s  → checklist items fade in, one by one
+     2.4s  → first item ticks off
+     ...    → each following item ticks at +380ms
+     end    → button appears (CSS handles its own delay)
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var intro       = document.getElementById('intro');
+  var titleText   = document.getElementById('titleText');
+  var titleText2  = document.getElementById('titleText2');
+  var titleCursor = document.getElementById('titleCursor');
+  var checklist   = document.getElementById('checklist');
+  var items       = checklist ? Array.prototype.slice.call(checklist.querySelectorAll('.item')) : [];
+  var progressBar = document.getElementById('progressBar');
+  var progressLbl = document.getElementById('progressLabel');
+  var cta         = document.getElementById('ctaButton');
+  if (!intro) return;
+
+  var body = document.body;
+  var html = document.documentElement;
+
+  function readSpeed() {
+    var v = parseFloat(getComputedStyle(intro).getPropertyValue('--speed'));
+    return isNaN(v) ? 1 : v;
+  }
+  var SPEED = readSpeed();
+
+  var reduced = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ------------------------------------------------------------
+     TITLE — typewriter effect for the two-word title
+     ------------------------------------------------------------ */
+  var TITLE_1 = 'Getting things ';
+  var TITLE_2 = 'done';
+  var titleTimers = [];
+
+  function typeTitle(done) {
+    var i = 0;
+    var target = titleText;
+    target.textContent = '';
+
+    function step() {
+      if (i >= TITLE_1.length) {
+        // Move on to the second span
+        titleText2.textContent = '';
+        i = 0;
+        typeSecond();
+        return;
+      }
+      target.textContent += TITLE_1.charAt(i);
+      i++;
+      titleTimers.push(setTimeout(step, 60 * SPEED));
+    }
+
+    function typeSecond() {
+      if (i >= TITLE_2.length) {
+        if (done) done();
+        return;
+      }
+      titleText2.textContent += TITLE_2.charAt(i);
+      i++;
+      titleTimers.push(setTimeout(typeSecond, 90 * SPEED));
+    }
+
+    step();
+  }
+
+  /* ------------------------------------------------------------
+     CHECKLIST — reveal items, then tick them one by one
+     ------------------------------------------------------------ */
+  function revealItems() {
+    items.forEach(function (item, i) {
+      item.style.animationDelay = (i * 130 * SPEED) + 'ms';
+    });
+  }
+
+  function tickItems() {
+    var done = 0;
+
+    items.forEach(function (item, i) {
+      setTimeout(function () {
+        item.classList.add('is-done');
+        done++;
+
+        // Update progress
+        if (progressBar) progressBar.style.width = ((done / items.length) * 100) + '%';
+        if (progressLbl) progressLbl.textContent = done + '/' + items.length;
+      }, (i * 380) * SPEED);
+    });
+  }
+
+  /* ------------------------------------------------------------
+     EXIT + NAVIGATE
+     ------------------------------------------------------------ */
+  var finished = false;
+  function playExit() {
+    if (finished) return;
+    finished = true;
+    body.classList.add('site--in');
+    intro.classList.add('intro--exit');
+    html.classList.remove('intro-lock');
+    setTimeout(function () {
+      if (intro.parentNode) intro.parentNode.removeChild(intro);
+    }, 1000);
+  }
+
+  if (cta) {
+    cta.addEventListener('click', function (e) {
+      var target = cta.getAttribute('href') || 'index.html';
+      e.preventDefault();
+      cta.blur();
+      playExit();
+      setTimeout(function () {
+        window.location.href = target;
+      }, 750);
+    });
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.key === 'Esc') playExit();
+  });
+
+  /* ------------------------------------------------------------
+     BOOT
+     ------------------------------------------------------------ */
+  html.classList.add('intro-lock');
+  body.classList.add('intro-playing');
+
+  if (reduced) {
+    // Reduced motion: show the finished state immediately.
+    titleText.textContent = TITLE_1;
+    titleText2.textContent = TITLE_2;
+    if (titleCursor) titleCursor.style.display = 'none';
+    items.forEach(function (item) { item.classList.add('is-done'); });
+    if (progressBar) progressBar.style.width = '100%';
+    if (progressLbl) progressLbl.textContent = items.length + '/' + items.length;
+    setTimeout(function () {
+      window.location.href = cta ? (cta.getAttribute('href') || 'index.html') : 'index.html';
+    }, 2600);
+  } else {
+    // Full choreography.
+    setTimeout(function () {
+      typeTitle(function () {
+        setTimeout(function () {
+          revealItems();
+          setTimeout(tickItems, 350 * SPEED);
+        }, 200 * SPEED);
+      });
+    }, 900 * SPEED);
+  }
+
+})();
+</script>
+</body>
+</html>

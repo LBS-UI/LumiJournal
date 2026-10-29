@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LumiJournal</title>
+<style>
+:root {
+  --bg: #eef7fe;
+  --bg-deep: #e2f1fb;
+  --panel: #ffffff;
+  --ink: #123242;
+  --muted: #6a8fa3;
+  --line: #d6e9f6;
+  --accent: #38a8e8;
+  --accent-strong: #1f93d6;
+  --accent-soft: #e3f3fd;
+  --danger: #d24949;
+  --radius: 12px;
+  --shadow: 0 12px 40px rgba(38, 120, 170, 0.10);
+
+  /* motion tokens */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #ffffff 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.hidden { display: none !important; }
+.muted { color: var(--muted); font-size: 0.875rem; }
+.spacer { flex: 1; }
+
+/* ================= keyframes ================= */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes hint-pop {
+  0%   { transform: scale(0.85); opacity: 0.4; }
+  60%  { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ================= brand ================= */
+.brand { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; }
+.brand h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.015em; color: var(--ink); }
+.brand.small h1 { font-size: 1.15rem; }
+.brand-mark {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  display: grid; place-items: center;
+  border-radius: 10px; font-weight: 700; color: #fff;
+  background: linear-gradient(145deg, #63c4f5 0%, var(--accent) 55%, var(--accent-strong) 100%);
+  box-shadow: 0 6px 16px rgba(56, 168, 232, 0.35);
+  transition: transform 400ms var(--ease-spring), box-shadow 300ms var(--ease-out);
+}
+.brand:hover .brand-mark {
+  transform: rotate(-6deg) scale(1.07);
+  box-shadow: 0 8px 22px rgba(56, 168, 232, 0.45);
+}
+.brand.small .brand-mark { width: 28px; height: 28px; flex-basis: 28px; border-radius: 8px; font-size: 0.9rem; }
+
+/* ================= buttons ================= */
+button {
+  font: inherit; cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink);
+  padding: 0.5rem 0.9rem; border-radius: var(--radius);
+  transition: background 160ms var(--ease-out),
+              border-color 160ms var(--ease-out),
+              color 160ms var(--ease-out),
+              box-shadow 220ms var(--ease-out),
+              transform 120ms var(--ease-out);
+}
+button:hover { background: var(--accent-soft); border-color: #bfe0f4; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:not(.tab):hover  { transform: translateY(-1px); }
+button:not(.tab):active { transform: translateY(0) scale(0.97); }
+button.danger { color: var(--danger); border-color: #f3d2d2; background: #fff; }
+button.danger:hover { background: #fdf1f1; border-color: #eebbbb; }
+
+/* ================= inputs ================= */
+input, textarea {
+  font: inherit; color: inherit; background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.6rem 0.75rem; width: 100%;
+  transition: border-color 160ms var(--ease-out),
+              box-shadow 220ms var(--ease-out);
+}
+input:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 168, 232, 0.18);
+}
+
+/* ================= views ================= */
+.view { min-height: 100%; }
+#auth-view { display: grid; place-items: center; padding: 2rem 1rem; }
+#auth-view:not(.hidden) .card {
+  animation: pop-in 460ms var(--ease-spring) both;
+}
+
+.card {
+  width: 100%; max-width: 390px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 18px;
+  padding: 2rem; box-shadow: var(--shadow);
+}
+.card > .muted { margin: 0 0 1.5rem; }
+
+.tabs {
+  display: flex; gap: 0.25rem; background: var(--accent-soft);
+  border-radius: var(--radius); padding: 0.25rem; margin-bottom: 1.25rem;
+}
+.tab {
+  flex: 1; border: none; background: transparent; padding: 0.5rem;
+  border-radius: 9px; color: var(--muted); font-weight: 600; font-size: 0.9rem;
+  transition: background 180ms var(--ease-out), color 180ms var(--ease-out),
+              box-shadow 220ms var(--ease-out);
+}
+.tab:hover { background: rgba(255, 255, 255, 0.6); }
+.tab.active {
+  background: var(--panel); color: var(--accent-strong);
+  box-shadow: 0 2px 8px rgba(38, 120, 170, 0.14);
+}
+
+#auth-form { display: grid; gap: 0.9rem; }
+#auth-form label {
+  display: grid; gap: 0.35rem; font-size: 0.8125rem; font-weight: 600;
+  letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted);
+  transition: color 200ms var(--ease-out);
+}
+#auth-form label:focus-within { color: var(--accent-strong); }
+#auth-form button[type="submit"] {
+  background: linear-gradient(145deg, #57bdf2, var(--accent) 55%, var(--accent-strong));
+  color: #fff; border-color: var(--accent-strong);
+  padding: 0.72rem; margin-top: 0.25rem; font-weight: 600;
+  box-shadow: 0 8px 20px rgba(56, 168, 232, 0.30);
+}
+#auth-form button[type="submit"]:hover { filter: brightness(1.04); }
+.error {
+  color: var(--danger); font-size: 0.875rem; margin: 0; min-height: 1.2em;
+  animation: fade-in 200ms var(--ease-out);
+}
+
+/* ================= journal shell ================= */
+#journal-view { display: flex; flex-direction: column; height: 100vh; }
+#journal-view:not(.hidden) .topbar  { animation: fade-down 380ms var(--ease-out) both; }
+#journal-view:not(.hidden) .sidebar { animation: slide-in-left 420ms var(--ease-out) 80ms both; }
+#journal-view:not(.hidden) .editor  { animation: fade-up 420ms var(--ease-out) 140ms both; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.8rem 1.25rem; background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.topbar-right { display: flex; align-items: center; gap: 0.9rem; }
+.layout { flex: 1; display: grid; grid-template-columns: 290px 1fr; min-height: 0; }
+
+/* ================= sidebar ================= */
+.sidebar {
+  border-right: 1px solid var(--line); background: rgba(255, 255, 255, 0.7);
+  display: flex; flex-direction: column; min-height: 0;
+}
+#new-entry {
+  margin: 1rem; padding: 0.65rem; font-weight: 600; color: #fff;
+  background: linear-gradient(145deg, #63c4f5, var(--accent) 60%, var(--accent-strong));
+  border-color: var(--accent-strong);
+  box-shadow: 0 6px 16px rgba(56, 168, 232, 0.28);
+}
+#new-entry:hover {
+  filter: brightness(1.05);
+  background: linear-gradient(145deg, #63c4f5, var(--accent) 60%, var(--accent-strong));
+  box-shadow: 0 10px 22px rgba(56, 168, 232, 0.38);
+}
+#entry-list {
+  list-style: none; margin: 0; padding: 0 0.6rem 1rem;
+  overflow-y: auto; flex: 1;
+}
+#entry-list .empty {
+  padding: 1.5rem 1rem; color: var(--muted); font-size: 0.875rem; text-align: center;
+  animation: fade-in 320ms var(--ease-out) both;
+}
+
+.entry-item {
+  padding: 0.65rem 0.75rem; border-radius: var(--radius); cursor: pointer;
+  border: 1px solid transparent; margin-bottom: 0.15rem;
+  transition: background 160ms var(--ease-out),
+              border-color 160ms var(--ease-out),
+              box-shadow 200ms var(--ease-out),
+              transform 160ms var(--ease-out);
+}
+.entry-item:hover {
+  background: #ffffff; border-color: var(--line);
+  transform: translateX(2px);
+}
+.entry-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.entry-item.active {
+  background: #ffffff; border-color: #bfe0f4;
+  box-shadow: inset 3px 0 0 var(--accent), 0 2px 8px rgba(38, 120, 170, 0.08);
+}
+.entry-item.animate-in {
+  animation: slide-in-left 300ms var(--ease-out) backwards;
+}
+.entry-item .entry-title {
+  font-weight: 600; font-size: 0.9375rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.entry-item .entry-meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* ================= editor ================= */
+.editor { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem; min-height: 0; }
+#entry-title {
+  font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em;
+  border: none; background: transparent; padding: 0.3rem 0.25rem; box-shadow: none;
+  transition: border-color 200ms var(--ease-out);
+}
+#entry-title:focus {
+  outline: none; box-shadow: none;
+  border-bottom: 2px solid var(--accent-soft); border-radius: 0;
+}
+#entry-body {
+  flex: 1; resize: none;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 1.0625rem; line-height: 1.8; padding: 1.1rem 1.2rem; min-height: 0;
+  background: #ffffff; border: 1px solid var(--line);
+  box-shadow: 0 8px 30px rgba(38, 120, 170, 0.06);
+}
+#entry-title.swap, #entry-body.swap { animation: fade-in 240ms var(--ease-out) both; }
+
+.actions { display: flex; align-items: center; gap: 0.6rem; }
+#saved-hint { transition: color 200ms var(--ease-out); }
+#saved-hint.pop { animation: hint-pop 320ms var(--ease-spring) both; }
+#save-entry {
+  background: linear-gradient(145deg, #57bdf2, var(--accent) 55%, var(--accent-strong));
+  color: #fff; border-color: var(--accent-strong); font-weight: 600;
+  padding: 0.55rem 1.3rem; box-shadow: 0 6px 16px rgba(56, 168, 232, 0.28);
+}
+#save-entry:hover { filter: brightness(1.04); box-shadow: 0 10px 22px rgba(56, 168, 232, 0.38); }
+
+/* ================= toast ================= */
+.toast {
+  position: fixed; left: 50%; bottom: 24px;
+  transform: translate(-50%, 16px);
+  background: var(--ink); color: #fff;
+  padding: 0.55rem 1rem; border-radius: 999px;
+  font-size: 0.875rem; font-weight: 500;
+  opacity: 0; pointer-events: none; z-index: 100;
+  box-shadow: 0 10px 30px rgba(18, 50, 66, 0.25);
+  transition: opacity 220ms var(--ease-out), transform 280ms var(--ease-spring);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ================= responsive ================= */
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: 190px 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
+  #entry-list {
+    display: flex; gap: 0.5rem; overflow-x: auto; overflow-y: hidden;
+    padding: 0 0.6rem 0.9rem;
+  }
+  .entry-item { min-width: 185px; margin-bottom: 0; }
+  .entry-item.active { box-shadow: inset 0 -3px 0 var(--accent); }
+  .entry-item:hover { transform: translateY(-1px); }
+}
+
+/* ================= reduced motion ================= */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="auth-view" class="view">
+  <div class="card">
+    <div class="brand">
+      <div class="brand-mark">L</div>
+      <h1>LumiJournal</h1>
+    </div>
+    <p class="muted">A calm, private space. Your entries live only in this browser.</p>
+
+    <div class="tabs">
+      <button id="tab-login" class="tab active" type="button">Sign in</button>
+      <button id="tab-register" class="tab" type="button">Register</button>
+    </div>
+
+    <form id="auth-form" autocomplete="on">
+      <label>
+        Username
+        <input name="username" autocomplete="username" required>
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" id="auth-submit">Sign in</button>
+      <p id="auth-error" class="error" role="alert"></p>
+    </form>
+  </div>
+</div>
+
+<div id="journal-view" class="view hidden">
+  <header class="topbar">
+    <div class="brand small">
+      <div class="brand-mark">L</div>
+      <h1>LumiJournal</h1>
+    </div>
+    <div class="topbar-right">
+      <span id="who" class="muted"></span>
+      <button id="logout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <button id="new-entry" type="button">+ New entry</button>
+      <ul id="entry-list"></ul>
+    </aside>
+
+    <section class="editor">
+      <input id="entry-title" placeholder="Title" maxlength="200" autocomplete="off">
+      <textarea id="entry-body" placeholder="Write something…" maxlength="50000"></textarea>
+      <div class="actions">
+        <span id="saved-hint" class="muted"></span>
+        <div class="spacer"></div>
+        <button id="delete-entry" class="danger" type="button">Delete</button>
+        <button id="save-entry" type="button">Save</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = (sel) => document.querySelector(sel);
+
+/* ------------------------------------------------------------------ */
+/* storage                                                             */
+/* ------------------------------------------------------------------ */
+
+const KEYS = {
+  profiles: 'lumijournal:profiles',
+  session:  'lumijournal:session',
+  entries:  (user) => 'lumijournal:entries:' + user.toLowerCase(),
+};
+
+function readJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function writeJSON(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+/* ------------------------------------------------------------------ */
+/* crypto helpers                                                      */
+/* ------------------------------------------------------------------ */
+
+async function hashPassword(password, salt) {
+  const bytes = new TextEncoder().encode(salt + ':' + password);
+  if (window.crypto && crypto.subtle) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      return [...new Uint8Array(digest)]
+        .map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch { /* fall through */ }
+  }
+  let h1 = 0xdeadbeef ^ bytes.length, h2 = 0x41c6ce57 ^ bytes.length;
+  for (let i = 0; i < bytes.length; i++) {
+    h1 = Math.imul(h1 ^ bytes[i], 2654435761);
+    h2 = Math.imul(h2 ^ bytes[i], 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 'fb:' + (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+}
+
+function randomSalt() {
+  const a = new Uint8Array(16);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+  else for (let i = 0; i < a.length; i++) a[i] = (Math.random() * 256) | 0;
+  return [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function newId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
+/* ------------------------------------------------------------------ */
+/* app state                                                           */
+/* ------------------------------------------------------------------ */
+
+const state = {
+  user: null,
+  entries: [],
+  current: null,
+  dirty: false,
+  authMode: 'login',
+};
+
+/* ------------------------------------------------------------------ */
+/* views                                                               */
+/* ------------------------------------------------------------------ */
+
+function showAuth() {
+  $('#auth-view').classList.remove('hidden');
+  $('#journal-view').classList.add('hidden');
+}
+
+function enterJournal(username) {
+  $('#auth-view').classList.add('hidden');
+  $('#journal-view').classList.remove('hidden');
+  $('#who').textContent = username;
+  clearEditor();
+  loadEntries({ animate: true });
+}
+
+function clearEditor() {
+  state.current = null;
+  $('#entry-title').value = '';
+  $('#entry-body').value = '';
+  state.dirty = false;
+  $('#saved-hint').textContent = '';
+}
+
+function resetEditor() {
+  clearEditor();
+  renderList();
+}
+
+/* ------------------------------------------------------------------ */
+/* entries                                                             */
+/* ------------------------------------------------------------------ */
+
+function loadEntries({ animate = false } = {}) {
+  state.entries = readJSON(KEYS.entries(state.user.username), [])
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  renderList(animate);
+}
+
+function renderList(animate = false) {
+  const list = $('#entry-list');
+  list.innerHTML = '';
+
+  if (!state.entries.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = 'No entries yet.';
+    list.appendChild(li);
+    return;
+  }
+
+  state.entries.forEach((entry, index) => {
+    const li = document.createElement('li');
+    li.className = 'entry-item' + (state.current && state.current.id === entry.id ? ' active' : '');
+    li.tabIndex = 0;
+
+    if (animate) {
+      li.classList.add('animate-in');
+      li.style.animationDelay = Math.min(index * 35, 315) + 'ms';
+    }
+
+    const title = document.createElement('div');
+    title.className = 'entry-title';
+    title.textContent = entry.title || '(untitled)';
+
+    const meta = document.createElement('div');
+    meta.className = 'entry-meta';
+    meta.textContent = fmtDate(entry.updatedAt);
+
+    li.append(title, meta);
+    li.addEventListener('click', () => openEntry(entry.id));
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEntry(entry.id); }
+    });
+
+    list.appendChild(li);
+  });
+}
+
+function openEntry(id) {
+  if (state.dirty && !confirm('Discard unsaved changes?')) return;
+  const entry = state.entries.find((e) => e.id === id);
+  if (!entry) return;
+  state.current = entry;
+  state.dirty = false;
+  $('#entry-title').value = entry.title;
+  $('#entry-body').value = entry.body;
+  setSavedHint('Last saved ' + fmtDate(entry.updatedAt));
+  renderList();
+  animateEditorSwap();
+}
+
+function saveEntry() {
+  const title = $('#entry-title').value;
+  const body = $('#entry-body').value;
+  if (!title.trim() && !body.trim()) return;
+
+  const now = new Date().toISOString();
+
+  if (state.current) {
+    state.current.title = title.slice(0, 200);
+    state.current.body = body.slice(0, 50000);
+    state.current.updatedAt = now;
+  } else {
+    const entry = {
+      id: newId(),
+      title: title.slice(0, 200),
+      body: body.slice(0, 50000),
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.entries.push(entry);
+    state.current = entry;
+  }
+
+  persistEntries();
+  state.dirty = false;
+  setSavedHint('Saved ' + new Date().toLocaleTimeString(), true);
+  showToast('Entry saved');
+  loadEntries();
+}
+
+function deleteEntry() {
+  if (!state.current) return;
+  if (!confirm('Delete this entry permanently?')) return;
+  state.entries = state.entries.filter((e) => e.id !== state.current.id);
+  persistEntries();
+  clearEditor();
+  loadEntries();
+  showToast('Entry deleted');
+}
+
+function persistEntries() {
+  writeJSON(KEYS.entries(state.user.username), state.entries);
+}
+
+/* ------------------------------------------------------------------ */
+/* auth                                                                */
+/* ------------------------------------------------------------------ */
+
+function validateCredentials(username, password) {
+  if (typeof username !== 'string' || typeof password !== 'string') return 'Invalid input';
+  const name = username.trim();
+  if (name.length < 2 || name.length > 32) return 'Username must be 2–32 characters';
+  if (!/^[A-Za-z0-9_.-]+$/.test(name)) return 'Username may only contain letters, numbers, _ . -';
+  if (password.length < 6 || password.length > 200) return 'Password must be at least 6 characters';
+  return null;
+}
+
+async function register(username, password) {
+  const bad = validateCredentials(username, password);
+  if (bad) throw new Error(bad);
+
+  const name = username.trim();
+  const key = name.toLowerCase();
+  const profiles = readJSON(KEYS.profiles, {});
+  if (profiles[key]) throw new Error('That username is already taken');
+
+  const salt = randomSalt();
+  const hash = await hashPassword(password, salt);
+  profiles[key] = { username: name, salt, hash, createdAt: new Date().toISOString() };
+  writeJSON(KEYS.profiles, profiles);
+  return name;
+}
+
+async function login(username, password) {
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    throw new Error('Invalid input');
+  }
+  const key = username.trim().toLowerCase();
+  const profiles = readJSON(KEYS.profiles, {});
+  const profile = profiles[key];
+  if (!profile) throw new Error('Wrong username or password');
+
+  const hash = await hashPassword(password, profile.salt);
+  if (hash !== profile.hash) throw new Error('Wrong username or password');
+
+  return profile.username;
+}
+
+function setAuthMode(mode) {
+  state.authMode = mode;
+  $('#tab-login').classList.toggle('active', mode === 'login');
+  $('#tab-register').classList.toggle('active', mode === 'register');
+  $('#auth-submit').textContent = mode === 'login' ? 'Sign in' : 'Create account';
+  $('#auth-form').password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  $('#auth-error').textContent = '';
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const username = form.username.value.trim();
+  const password = form.password.value;
+
+  try {
+    const name = state.authMode === 'login'
+      ? await login(username, password)
+      : await register(username, password);
+
+    state.user = { username: name };
+    localStorage.setItem(KEYS.session, name);
+    form.reset();
+    $('#auth-error').textContent = '';
+    enterJournal(name);
+  } catch (err) {
+    $('#auth-error').textContent = err.message;
+  }
+}
+
+function logout() {
+  if (state.dirty && !confirm('You have unsaved changes. Sign out anyway?')) return;
+  localStorage.removeItem(KEYS.session);
+  state.user = null;
+  state.entries = [];
+  state.current = null;
+  state.dirty = false;
+  showAuth();
+}
+
+/* ------------------------------------------------------------------ */
+/* feedback helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function setDirty(value) {
+  state.dirty = value;
+  if (value) setSavedHint('Unsaved changes');
+}
+
+function setSavedHint(text, pop = false) {
+  const el = $('#saved-hint');
+  el.textContent = text;
+  if (pop) {
+    el.classList.remove('pop');
+    void el.offsetWidth; // restart animation
+    el.classList.add('pop');
+  }
+}
+
+function animateEditorSwap() {
+  for (const sel of ['#entry-title', '#entry-body']) {
+    const el = $(sel);
+    el.classList.remove('swap');
+    void el.offsetWidth;
+    el.classList.add('swap');
+  }
+}
+
+let toastTimer = null;
+function showToast(message) {
+  const toast = $('#toast');
+  toast.textContent = message;
+  toast.classList.remove('show');
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+/* ------------------------------------------------------------------ */
+/* wiring                                                              */
+/* ------------------------------------------------------------------ */
+
+function bindEvents() {
+  $('#tab-login').addEventListener('click', () => setAuthMode('login'));
+  $('#tab-register').addEventListener('click', () => setAuthMode('register'));
+  $('#auth-form').addEventListener('submit', handleAuthSubmit);
+
+  $('#logout').addEventListener('click', logout);
+  $('#new-entry').addEventListener('click', () => {
+    if (state.dirty && !confirm('Discard unsaved changes?')) return;
+    resetEditor();
+    $('#entry-title').focus();
+  });
+  $('#save-entry').addEventListener('click', saveEntry);
+  $('#delete-entry').addEventListener('click', deleteEntry);
+
+  $('#entry-title').addEventListener('input', () => setDirty(true));
+  $('#entry-body').addEventListener('input', () => setDirty(true));
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (!$('#journal-view').classList.contains('hidden')) saveEntry();
+    }
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+function init() {
+  bindEvents();
+  const saved = localStorage.getItem(KEYS.session);
+  if (saved) {
+    const profiles = readJSON(KEYS.profiles, {});
+    const profile = profiles[saved.toLowerCase()];
+    if (profile) {
+      state.user = { username: profile.username };
+      enterJournal(profile.username);
+      return;
+    }
+  }
+  showAuth();
+}
+
+init();
+})();
+</script>
+</body>
+</html>
